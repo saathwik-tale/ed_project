@@ -1,7 +1,12 @@
+import 'package:ed_project/controllers/task_controller.dart';
 import 'package:ed_project/theme.dart';
+import 'package:ed_project/widgets/button.dart';
 import 'package:ed_project/widgets/input_field.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+
+import 'models/task.dart';
 
 class AddTaskPage extends StatefulWidget {
   AddTaskPage({Key? key}) : super(key: key);
@@ -11,6 +16,9 @@ class AddTaskPage extends StatefulWidget {
 }
 
 class _AddTaskPageState extends State<AddTaskPage> {
+  final TaskController _taskController = Get.put(TaskController());
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
   DateTime _selectedDay = DateTime.now();
   String _startTime = DateFormat("hh:mm a").format(DateTime.now()).toString();
   String _endTime = "9:30 PM";
@@ -31,6 +39,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
     "Monthly",
   ];
 
+  int _selectedColor = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,8 +55,16 @@ class _AddTaskPageState extends State<AddTaskPage> {
                 "Add Task",
                 style: headingStyle,
               ),
-              const MyInputField(title: "Title", hint: "Enter your title"),
-              const MyInputField(title: "Note", hint: "Enter your note"),
+              MyInputField(
+                title: "Title",
+                hint: "Enter your title",
+                controller: _titleController,
+              ),
+              MyInputField(
+                title: "Note",
+                hint: "Enter your note",
+                controller: _noteController,
+              ),
               MyInputField(
                 title: "Date",
                 hint: DateFormat.yMd().format(_selectedDay),
@@ -158,43 +176,85 @@ class _AddTaskPageState extends State<AddTaskPage> {
                 height: 18,
               ),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Color",
-                        style: titleStyle,
-                      ),
-                      const SizedBox(
-                        height: 8.0,
-                      ),
-                      Wrap(
-                        children: List<Widget>.generate(3, (int index) {
-                          return GestureDetector(
-                            onTap: () {},
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: CircleAvatar(
-                                radius: 14,
-                                backgroundColor: index == 0
-                                    ? PrimaryClr
-                                    : index == 1
-                                        ? Colors.amberAccent
-                                        : Colors.blueAccent,
-                              ),
-                            ),
-                          );
-                        }),
-                      )
-                    ],
-                  )
+                  _colorPallete(),
+                  MyButton(label: "Create Task", onTap: () => _validateDate())
                 ],
               )
             ],
           ),
         ),
       ),
+    );
+  }
+
+  _validateDate() {
+    if (_titleController.text.isNotEmpty && _noteController.text.isNotEmpty) {
+      _addTaskToDb();
+      Get.back();
+    } else if (_titleController.text.isEmpty || _noteController.text.isEmpty) {
+      Get.snackbar("Required", "All field are required !",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.amber,
+          icon: Icon(Icons.warning_amber_rounded));
+    }
+  }
+
+  _addTaskToDb() async {
+    int value = await _taskController.addTask(
+        task: Task(
+      note: _noteController.text,
+      title: _titleController.text,
+      date: DateFormat.yMd().format(_selectedDay),
+      startTime: _startTime,
+      endTime: _endTime,
+      remind: _selectedRemind,
+      repeat: _selectedRepeat,
+      color: _selectedColor,
+      isCompleted: 0,
+    ));
+    print("My id is " + "$value");
+  }
+
+  _colorPallete() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Color",
+          style: titleStyle,
+        ),
+        const SizedBox(
+          height: 8.0,
+        ),
+        Wrap(
+          children: List<Widget>.generate(3, (int index) {
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedColor = index;
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: CircleAvatar(
+                  radius: 14,
+                  backgroundColor: index == 0
+                      ? PrimaryClr
+                      : index == 1
+                          ? Colors.amberAccent
+                          : Colors.blueAccent,
+                  child: _selectedColor == index
+                      ? Icon(Icons.done, color: Colors.white, size: 16)
+                      : Container(),
+                ),
+              ),
+            );
+          }),
+        )
+      ],
     );
   }
 
